@@ -1,4 +1,13 @@
 import { UserService } from "./BusinessLayer";
+import { AppError } from "../errors";
+
+type ApiResponse<T = any> = {
+  success: boolean;
+  data?: T;
+  message?: string;
+  errorCode?: string;
+  statusCode?: number;
+};
 
 export class UserController {
   private userService: UserService;
@@ -7,62 +16,99 @@ export class UserController {
     this.userService = new UserService();
   }
 
-  handleCreateUser(name: string, email: string): { success: boolean; data?: any; error?: string } {
-    try {
-      const user = this.userService.createUser(name, email);
-      return {
-        success: true,
-        data: user,
-      };
-    } catch (error: Error) {
+  private formatError(error: unknown, context?: Record<string, unknown>): ApiResponse {
+    if (error instanceof AppError) {
+      // Logging interno para debugging
+      console.error("[ERROR]", {
+        name: error.name,
+        errorCode: error.errorCode,
+        statusCode: error.statusCode,
+        message: error.message,
+        context: { ...error.executionContext, ...context },
+      });
+      // Respuesta segura para el usuario
       return {
         success: false,
-        errorCode: error.code
-        errorMessage: error.message,
-        context: {
-          name,
-          email
-        }
+        message: this.safeMessage(error),
+        errorCode: error.errorCode,
+        statusCode: error.statusCode,
       };
     }
-  }
-  }
 
-  handleGetUser(id: number): { success: boolean; data?: any; error?: string } {
-    const user = this.userService.getUserById(id);
+    console.error("[ERROR_UNEXPECTED]", { error });
     return {
-      success: true,
-      data: user,
+      success: false,
+      message: "Ha ocurrido un error inesperado",
+      errorCode: "UNEXPECTED_ERROR",
+      statusCode: 500,
     };
   }
 
-  handleUpdateUser(id: number, name: string, email: string): { success: boolean; data?: any; error?: string } {
-    const user = this.userService.updateUser(id, name, email);
-    return {
-      success: true,
-      data: user,
-    };
+  private safeMessage(error: AppError): string {
+    switch (error.errorCode) {
+      case "VALIDATION_ERROR":
+        return error.message;
+      case "NOT_FOUND":
+        return error.message;
+      case "CONFLICT":
+        return error.message;
+      case "NETWORK_ERROR":
+        return "Servicio temporalmente no disponible. Intenta más tarde.";
+      case "DATABASE_ERROR":
+        return "No se pudo completar la operación. Intenta más tarde.";
+      default:
+        return "Ha ocurrido un error";
+    }
   }
 
-  handleResetPassword(userId: number): { success: boolean; message?: string; error?: string } {
-    this.userService.resetPassword(userId);
-    return {
-      success: true,
-      message: "Email de restablecimiento enviado",
-    };
+  handleCreateUser(name: string, email: string): ApiResponse {
+    try {
+      const user = this.userService.createUser(name, email);
+      return { success: true, data: user };
+    } catch (error) {
+      return this.formatError(error, { name, email });
+    }
   }
 
-  initialize(): { success: boolean; message?: string; error?: string } {
-    this.userService.initialize();
-    return {
-      success: true,
-      message: "Sistema inicializado correctamente",
-    };
+  handleGetUser(id: number): ApiResponse {
+    try {
+      const user = this.userService.getUserById(id);
+      return { success: true, data: user };
+    } catch (error) {
+      return this.formatError(error, { id });
+    }
+  }
+
+  handleUpdateUser(id: number, name: string, email: string): ApiResponse {
+    try {
+      const user = this.userService.updateUser(id, name, email);
+      return { success: true, data: user };
+    } catch (error) {
+      return this.formatError(error, { id, name, email });
+    }
+  }
+
+  handleResetPassword(userId: number): ApiResponse {
+    try {
+      this.userService.resetPassword(userId);
+      return { success: true, message: "Email de restablecimiento enviado" };
+    } catch (error) {
+      return this.formatError(error, { userId });
+    }
+  }
+
+  initialize(): ApiResponse {
+    try {
+      this.userService.initialize();
+      return { success: true, message: "Sistema inicializado correctamente" };
+    } catch (error) {
+      return this.formatError(error);
+    }
   }
 }
 
 export function runApplication() {
-  console.log("=== APLICACIÓN SIN GESTIÓN DE ERRORES ===\n");
+  console.log("=== APLICACIÓN CON GESTIÓN DE ERRORES ===\n");
 
   const controller = new UserController();
 
@@ -74,3 +120,5 @@ export function runApplication() {
   const result2 = controller.handleGetUser(999);
   console.log("Resultado:", result2);
 }
+
+runApplication();
