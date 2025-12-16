@@ -9,8 +9,8 @@ export class Document {
     return this.fileSize != null && this.fileSize < maxFileSize
   }
 
-  validateName(){
-    return this.name != null && this.name != "" && this.name.indexOf(".")
+  validateName() {
+    return this.name != null && this.name != "" && this.name.indexOf(".") != -1
   }
 
   validateExtension(extension: Extension){

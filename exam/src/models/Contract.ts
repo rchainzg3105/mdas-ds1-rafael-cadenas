@@ -1,6 +1,8 @@
 import { Document } from "./Document";
+import { Extension } from "./enum/Extension";
 
 export class Contract extends Document {
+    public readonly maxFileSize: number = 3
     constructor(
         public readonly name: string,
         public readonly fileSize: number,
@@ -8,5 +10,11 @@ export class Contract extends Document {
         public readonly version: string,
     ){
         super(name, fileSize)
+    }
+
+    validateDocument(): boolean {
+        return super.validateName() && 
+                super.validateExtension(Extension.PDF) &&
+                super.validateSize(this.maxFileSize); 
     }
 }
