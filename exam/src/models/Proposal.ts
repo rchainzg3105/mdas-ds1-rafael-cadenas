@@ -5,16 +5,18 @@ export class Proposal extends Document {
     constructor(
         public readonly name: string,
         public readonly fileSize: number,
-        public readonly proposalDate: Date,
+        public readonly proposalDate: string,
         public readonly client: string,
     ){
         super(name, fileSize)
     }
 
     validateDocument(): boolean {
+        let metadataIsValid = this.proposalDate != null && this.proposalDate != "" && this.client != null && this.client != ""
         return super.validateName() && 
                 super.validateExtension(Extension.PDF) &&
                 super.validateExtension(Extension.DOCX) &&
-                super.validateSize(this.maxFileSize); 
+                super.validateSize(this.maxFileSize) &&
+                metadataIsValid; 
         }
 }

@@ -13,8 +13,10 @@ export class Contract extends Document {
     }
 
     validateDocument(): boolean {
+        let metadataIsValid = this.author != null && this.author != "" && this.version != null && this.version != ""
         return super.validateName() && 
                 super.validateExtension(Extension.PDF) &&
-                super.validateSize(this.maxFileSize); 
+                super.validateSize(this.maxFileSize) &&
+                metadataIsValid; 
     }
 }
